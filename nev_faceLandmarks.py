@@ -32,6 +32,11 @@ eyes_closed_time = 0
 start_time_mouth = None
 mouth_opened_time = 0
 
+prev_frame_time = 0
+new_frame_time = 0
+elapsed_time = 0
+fps = 0
+
 # Frame Counter
 frame_counter = 0
 
@@ -98,7 +103,7 @@ cv2.createTrackbar('Mode', 'Facial Features', 0, 1, change_mode)
 
 # Initialize video writer (set the desired output file name and format)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-out = cv2.VideoWriter(videoname, fourcc, 30.0, (960, 540))
+out = cv2.VideoWriter(videoname, fourcc, 16.61, (960, 540))
 
 # Initialize recording flag
 recording = False
@@ -107,6 +112,9 @@ recording = False
 FONT = cv2.FONT_HERSHEY_COMPLEX
 ldmk_font_size = 0.3
 info_font_size = 0.5
+
+# Establish text background color
+text_background = (0, 0, 0)
 
 # Establish Landmark Information Display Location
 info_left_eye_x = 10
@@ -141,6 +149,11 @@ with mp_face_mesh.FaceMesh(
   while cap.isOpened():
     frame_counter += 1
     success, image = cap.read()
+   #  # Measure video framerate
+   #  new_frame_time = time.time()
+   #  fps = 1/(new_frame_time-prev_frame_time)
+   #  prev_frame_time = new_frame_time
+   #  print(fps)
     if not success:
       print("Ignoring empty camera frame.")
       # If loading a video, use 'break' instead of 'continue'.
@@ -276,15 +289,18 @@ with mp_face_mesh.FaceMesh(
            cv2.arrowedLine(image, p1, p2, (255, 255, 255), 3)
 
            # Add the text on the image
+           #First draw background rectangle (For consistent contrast)
+           cv2.rectangle(image, (info_left_eye_x, info_ldmk_y-20), (info_left_eye_x+135, info_ldmk_y+50), text_background, -1)
+
            #cv2.putText(image, text, (int(img_w/2)-150, 50), FONT, 1.5, (0, 255, 0), 2)
            text_y_offset = 0
            cv2.putText(image, f"HEAD ROTATION", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 255, 255), 2)
            text_y_offset += 20
-           cv2.putText(image, f"x: {str(np.round(x_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 255), 2)
+           cv2.putText(image, f"x: {str(np.round(x_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (128, 128, 128), 2)
            text_y_offset += 15
-           cv2.putText(image, f"y: {str(np.round(y_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 255), 2)
+           cv2.putText(image, f"y: {str(np.round(y_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (128, 128, 128), 2)
            text_y_offset += 15
-           cv2.putText(image, f"z: {str(np.round(z_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 255), 2)
+           cv2.putText(image, f"z: {str(np.round(z_rot,2))} deg", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (128, 128, 128), 2)
            text_y_offset += 25
         
         
@@ -292,9 +308,11 @@ with mp_face_mesh.FaceMesh(
 
            # Highlight specific landmarks for the left eye
            left_eye_coords = []
-           cv2.putText(image, f"EYE FEATURES", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 255, 255), 2)
+           # Draw text background rectangle
+           cv2.rectangle(image, (info_left_eye_x, info_ldmk_y+text_y_offset-20), (info_left_eye_x+135, info_ldmk_y+text_y_offset+225), text_background, -1)
+           cv2.putText(image, f"EYE FEATs", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 255, 255), 2)
            text_y_offset += 20
-           cv2.putText(image, f"Left Eye Landmarks:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 255, 0), 2)
+           cv2.putText(image, f"Left Eye LMKs:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 255, 0), 2)
            for i, idx in enumerate(left_eye_indices):
             # Obtain x,y coordinates of left eye landmarks
             x = int(face_landmarks.landmark[idx].x * image.shape[1]) # Frame X coordinate
@@ -328,7 +346,7 @@ with mp_face_mesh.FaceMesh(
            # Highlight specific landmarks for the right eye
            right_eye_coords = []
            text_y_offset += 30
-           cv2.putText(image, f"Right Eye Landmarks:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 255), 2)
+           cv2.putText(image, f"Right Eye LMKs:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 255), 2)
            for i, idx in enumerate(right_eye_indices):
             # Obtain x,y coordinates of right eye landmarks
             x = int(face_landmarks.landmark[idx].x * image.shape[1]) # Frame X coordinate
@@ -365,14 +383,18 @@ with mp_face_mesh.FaceMesh(
            text_y_offset += 20
 
            eye_time_text_y = info_ldmk_y+text_y_offset
-           ### MOUTH ###
+           
+           ### MOUTH FEATURES###
            # Highlight specific landmarks for the mouth
            mouth_coords = []
+           
+           # Draw text background rectangle
+           cv2.rectangle(image, (info_left_eye_x, info_ldmk_y+text_y_offset), (info_left_eye_x+135, info_ldmk_y+text_y_offset+155), text_background, -1)
 
            text_y_offset += 30
-           cv2.putText(image, f"MOUTH FEATURES", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 255, 255), 2)
+           cv2.putText(image, f"MOUTH FEATs", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 255, 255), 2)
            text_y_offset += 20
-           cv2.putText(image, f"Mouth Landmarks:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 0, 0), 2)
+           cv2.putText(image, f"Mouth LMKs:", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (255, 0, 0), 2)
            for i, idx in enumerate(mouth_indices):
             # Obtain x,y coordinates of mouth landmarks
             x = int(face_landmarks.landmark[idx].x * image.shape[1]) # Frame X coordinate
@@ -418,7 +440,7 @@ with mp_face_mesh.FaceMesh(
               eyes_closed_time = 0
         
            # Display the time eyes are closed
-           cv2.putText(image, f"Time eyes closed: {eyes_closed_time:.2f} s", (info_left_eye_x, eye_time_text_y), FONT, info_font_size, (0, 0, 0), 2)
+           cv2.putText(image, f"Closed: {eyes_closed_time:.2f} s", (info_left_eye_x, eye_time_text_y), FONT, info_font_size, (0,165,255), 2)
 
            #MAR Threshold for closed eyes
            if mar > mar_threshold:
@@ -432,11 +454,8 @@ with mp_face_mesh.FaceMesh(
               start_time_mouth = None
               mouth_opened_time = 0
         
-           # Display the time eyes are closed
-           cv2.putText(image, f"Time eyes closed: {eyes_closed_time:.2f} s", (info_left_eye_x, eye_time_text_y), FONT, info_font_size, (0, 0, 0), 2)
-
-           # Display the time eyes are closed
-           cv2.putText(image, f"Time mouth opened: {mouth_opened_time:.2f} s", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 0, 0), 2)
+           # Display the time mouth is open
+           cv2.putText(image, f"Opened: {mouth_opened_time:.2f} s", (info_left_eye_x, info_ldmk_y+text_y_offset), FONT, info_font_size, (0, 165, 255), 2)
 
            ########### END of Facial feature recogition #################
 
@@ -467,7 +486,7 @@ with mp_face_mesh.FaceMesh(
         print('Recording Mode Change')
         recording = not recording
        if recording:
-          cv2.circle(image, (250, 20), 10, (0, 0, 255), -1)  # Red circle
+          cv2.circle(image, (270, 20), 10, (0, 0, 255), -1)  # Red circle
           out.write(image)  # Write frame to video file
               
     # Flip the image horizontally for a selfie-view display.
