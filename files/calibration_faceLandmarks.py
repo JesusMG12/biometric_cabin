@@ -188,7 +188,7 @@ cv2.createTrackbar('HEAD2 CALIB', 'Facial Features', 0, 1, change_headpose_2)
 
 # Initialize video writer (set the desired output file name and format)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-out = cv2.VideoWriter(videoname, fourcc, 30.0, (960, 540))
+out = cv2.VideoWriter(videoname, fourcc, 16.61, (960, 540))
 
 # Establish font type and size
 FONT = cv2.FONT_HERSHEY_COMPLEX
